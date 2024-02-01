@@ -63,6 +63,8 @@ func RegisterRouter() *gin.Engine {
 	{
 		authGroup.POST("/server/broadcast", publishBroadcast)
 		authGroup.POST("/server/shutdown", shutdownServer)
+		authGroup.GET("/server/launch", launchServer)
+		authGroup.GET("/server/online", checkServerStatus)
 		authGroup.PUT("/player", putPlayers)
 		authGroup.POST("/player/:player_uid/kick", kickPlayer)
 		authGroup.POST("/player/:player_uid/ban", banPlayer)

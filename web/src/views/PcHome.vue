@@ -49,6 +49,7 @@ const playerPalsList = ref([]);
 const guildInfo = ref({});
 const skillTypeList = ref([]);
 const languageOptions = ref([]);
+const isServerOnline = ref(false);
 
 const isLogin = ref(false);
 const authToken = ref("");
@@ -512,9 +513,37 @@ const doShutdown = async () => {
   });
 };
 
+const doLaunch = async () => {
+  return await new ApiService().launchServer();
+};
+
+const checkServerStatus = async () => {
+  const { data } = await new ApiService().checkServerStatus();
+  isServerOnline.value = data.value;
+}
+
 // shutdown
 const handleShutdown = () => {
   if (checkAuthToken()) {
+    if (!isServerOnline.value) {
+      dialog.warning({
+        title: t("message.warn"),
+        content: t("message.launchtip"),
+        positiveText: t("button.confirm"),
+        negativeText: t("button.cancel"),
+        onPositiveClick: async () => {
+          const { data, statusCode } = await doLaunch();
+          if (statusCode.value === 200) {
+            message.success(t("message.launchsuccess"));
+            return;
+          } else {
+            message.error(t("message.launchfail", { err: data.value?.error }));
+          }
+        },
+        onNegativeClick: () => {},
+      });
+      return;
+    }
     dialog.warning({
       title: t("message.warn"),
       content: t("message.shutdowntip"),
@@ -607,6 +636,7 @@ onMounted(async () => {
   checkAuthToken();
   getServerInfo();
   await getPlayerList();
+  await checkServerStatus();
   loading.value = false;
   setInterval(() => {
     getPlayerList(false);
@@ -756,7 +786,7 @@ onMounted(async () => {
                     <SettingsPowerRound />
                   </n-icon>
                 </template>
-                {{ $t("button.shutdown") }}
+                {{ isServerOnline ? $t("button.shutdown") : $t("button.launch") }}
               </n-button>
             </n-space>
           </n-layout-header>

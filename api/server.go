@@ -7,6 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/zaigie/palworld-server-tool/internal/tool"
+
+	"os/exec"
+	"golang.org/x/sys/windows"
 )
 
 type ServerInfo struct {
@@ -118,4 +121,33 @@ func validateMessage(message string) error {
 		}
 	}
 	return nil
+}
+
+func launchServer(c *gin.Context) {
+	err := exec.Command(`F:\SteamLibrary\steamapps\common\PalServer\PalServer.exe`, "-useperfthreads", "-NoAsyncLoadingThread", "-UseMultithreadForDS").Start()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"success": true})
+	}
+}
+
+func checkServerStatus(c *gin.Context) {
+	h, e := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
+	defer windows.CloseHandle(h)
+	if e != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": e.Error()})
+		return
+	}
+	p := windows.ProcessEntry32{Size: 568}
+	for {
+		e := windows.Process32Next(h, &p)
+		if e != nil { break }
+		s := windows.UTF16ToString(p.ExeFile[:])
+		if s == "PalServer-Win64-Test-Cmd.exe" {
+			c.JSON(http.StatusOK, true)
+			return
+		}
+	}
+	c.JSON(http.StatusOK, false)
 }
